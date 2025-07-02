@@ -40,6 +40,11 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+# JWT configuration
+jwt:
+  secret: myVerySecretKeyForJWTTokenGenerationThatIsLongEnough
+  expiration: 86400000 # 24 hours in milliseconds
+
 # Actuator configuration
 management:
   endpoints:

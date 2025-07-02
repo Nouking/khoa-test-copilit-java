@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,9 +32,11 @@ public class UserServiceTest {
         
         assertNotNull(user);
         assertNotNull(user.getId());
+        assertNotNull(user.getUsername());
         assertNotNull(user.getName());
         assertNotNull(user.getEmail());
         assertTrue(user.getId() >= 1 && user.getId() < 1000000);
+        assertEquals("random_user", user.getUsername());
         assertEquals("Random User", user.getName());
         assertEquals("random@example.com", user.getEmail());
     }
@@ -49,43 +52,88 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testCreateUser_ReturnsNewUserWithIncrementingId() {
-        User user1 = userService.createUser("John Doe", "john@example.com");
-        User user2 = userService.createUser("Jane Smith", "jane@example.com");
+    public void testCreateUser_Success() {
+        User user = new User("john_doe", "John Doe", "john@example.com");
+        when(userMapper.countByUsername("john_doe")).thenReturn(0);
+        when(userMapper.countByEmail("john@example.com")).thenReturn(0);
+        when(userMapper.insertUser(user)).thenReturn(1);
         
-        assertNotNull(user1);
-        assertNotNull(user2);
-        assertEquals("John Doe", user1.getName());
-        assertEquals("john@example.com", user1.getEmail());
-        assertEquals("Jane Smith", user2.getName());
-        assertEquals("jane@example.com", user2.getEmail());
+        User result = userService.createUser(user);
         
-        // IDs should be incrementing
-        assertTrue(user2.getId() > user1.getId());
+        assertNotNull(result);
+        assertEquals("john_doe", result.getUsername());
+        assertEquals("John Doe", result.getName());
+        assertEquals("john@example.com", result.getEmail());
+        
+        verify(userMapper, times(1)).countByUsername("john_doe");
+        verify(userMapper, times(1)).countByEmail("john@example.com");
+        verify(userMapper, times(1)).insertUser(user);
     }
 
     @Test
-    public void testGetAllUsers_ReturnsAllCreatedUsers() {
-        // Initial users should be present
-        List<User> initialUsers = userService.getAllUsers();
-        int initialCount = initialUsers.size();
-        assertTrue(initialCount >= 2); // Should have John Doe and Jane Smith from constructor
+    public void testCreateUser_ThrowsException_WhenUsernameExists() {
+        User user = new User("john_doe", "John Doe", "john@example.com");
+        when(userMapper.countByUsername("john_doe")).thenReturn(1);
         
-        // Add a new user
-        userService.createUser("Test User", "test@example.com");
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(user));
         
-        List<User> allUsers = userService.getAllUsers();
-        assertEquals(initialCount + 1, allUsers.size());
+        verify(userMapper, times(1)).countByUsername("john_doe");
+        verify(userMapper, never()).countByEmail(anyString());
+        verify(userMapper, never()).insertUser(any());
+    }
+
+    @Test
+    public void testCreateUser_ThrowsException_WhenEmailExists() {
+        User user = new User("john_doe", "John Doe", "john@example.com");
+        when(userMapper.countByUsername("john_doe")).thenReturn(0);
+        when(userMapper.countByEmail("john@example.com")).thenReturn(1);
         
-        // Verify the new user is in the list
-        boolean foundTestUser = allUsers.stream()
-                .anyMatch(user -> "Test User".equals(user.getName()) && "test@example.com".equals(user.getEmail()));
-        assertTrue(foundTestUser);
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(user));
+        
+        verify(userMapper, times(1)).countByUsername("john_doe");
+        verify(userMapper, times(1)).countByEmail("john@example.com");
+        verify(userMapper, never()).insertUser(any());
+    }
+
+    @Test
+    public void testGetAllUsers_ReturnsUsersFromDatabase() {
+        List<User> expectedUsers = Arrays.asList(
+            new User(1L, "john_doe", "John Doe", "john@example.com"),
+            new User(2L, "jane_smith", "Jane Smith", "jane@example.com")
+        );
+        when(userMapper.findAllUsers()).thenReturn(expectedUsers);
+        
+        List<User> result = userService.getAllUsers();
+        
+        assertEquals(expectedUsers, result);
+        verify(userMapper, times(1)).findAllUsers();
+    }
+
+    @Test
+    public void testGetUserById() {
+        User expectedUser = new User(1L, "john_doe", "John Doe", "john@example.com");
+        when(userMapper.findUserById(1L)).thenReturn(expectedUser);
+        
+        User result = userService.getUserById(1L);
+        
+        assertEquals(expectedUser, result);
+        verify(userMapper, times(1)).findUserById(1L);
+    }
+
+    @Test
+    public void testGetUserByUsername() {
+        User expectedUser = new User(1L, "john_doe", "John Doe", "john@example.com");
+        when(userMapper.findUserByUsername("john_doe")).thenReturn(expectedUser);
+        
+        User result = userService.getUserByUsername("john_doe");
+        
+        assertEquals(expectedUser, result);
+        verify(userMapper, times(1)).findUserByUsername("john_doe");
     }
 
     @Test
     public void testGetSampleUser_CallsMapper() {
-        User expectedUser = new User(1L, "Sample User", "sample@example.com");
+        User expectedUser = new User(1L);
         when(userMapper.findSampleUser()).thenReturn(expectedUser);
         
         User result = userService.getSampleUser();
