@@ -1,0 +1,39 @@
+server:
+  port: 0 # Random port for tests
+
+spring:
+  application:
+    name: khoa-spring-skeleton-test
+  
+  # H2 Test Database configuration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # H2 Console disabled in tests
+  h2:
+    console:
+      enabled: false
+  
+  # JPA/Hibernate configuration for tests
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+# MyBatis configuration
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.skeleton.model
+  configuration:
+    map-underscore-to-camel-case: true
+
+# Logging configuration for tests
+logging:
+  level:
+    com.example.skeleton: WARN
+    org.springframework.security: WARN
+    org.springframework.web: WARN
