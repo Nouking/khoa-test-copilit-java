@@ -6,7 +6,7 @@ A production-ready Spring Boot skeleton project that serves as a perfect foundat
 
 - **Spring Boot 3.2.1** - Latest stable version with Java 17 support
 - **Maven** - Dependency management and build tool
-- **Spring Security** - Comprehensive security configuration
+- **Spring Security** - Basic Authentication with in-memory users
 - **MyBatis** - SQL mapping framework for database operations
 - **H2 Database** - In-memory database for development and testing
 - **JUnit 5 & Mockito** - Complete testing framework
@@ -34,13 +34,25 @@ The application will start on `http://localhost:8080/api`
 
 ### Available Endpoints
 
-- **GET /api/user** - Returns a user with random ID (no authentication required)
+#### Public Endpoints (No Authentication Required)
+- **GET /api/user** - Returns a user with random ID
+
+#### Protected Endpoints (Authentication Required)
+- **POST /api/user** - Create a new user (requires basic authentication)
+- **GET /api/user/all** - Get all users (requires basic authentication)
+
+#### System Endpoints (Public)
 - **GET /api/actuator/health** - Health check endpoint
 - **GET /api/actuator/info** - Application information
 - **GET /api/h2-console** - H2 database console (development only)
 
-### Example API Response
+#### Authentication Credentials
+- **Admin User**: username `admin`, password `password` (ROLE_ADMIN)
+- **Regular User**: username `user`, password `password` (ROLE_USER)
 
+### Example API Usage
+
+#### Get Random User (Public)
 ```bash
 curl http://localhost:8080/api/user
 ```
@@ -48,8 +60,48 @@ curl http://localhost:8080/api/user
 Response:
 ```json
 {
-  "id": 123456
+  "id": 123456,
+  "name": "Random User", 
+  "email": "random@example.com"
 }
+```
+
+#### Create New User (Authenticated)
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"name": "John Doe", "email": "john@example.com"}' \
+     -u admin:password \
+     http://localhost:8080/api/user
+```
+
+Response:
+```json
+{
+  "id": 3,
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+#### Get All Users (Authenticated)
+```bash
+curl -u admin:password http://localhost:8080/api/user/all
+```
+
+Response:
+```json
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith", 
+    "email": "jane@example.com"
+  }
+]
 ```
 
 ## 🧪 Testing
@@ -120,11 +172,18 @@ The project uses H2 in-memory database by default. To switch to a different data
 ### Security Configuration
 
 The security is configured to:
-- Allow public access to `/api/user` endpoint
+- Allow public access to `/api/user` GET endpoint
+- **Require Basic Authentication** for POST `/api/user` and GET `/api/user/all` endpoints  
 - Allow access to H2 console and actuator endpoints
-- Require authentication for all other endpoints
+- Use in-memory user authentication with two predefined users:
+  - `admin` with `ROLE_ADMIN` 
+  - `user` with `ROLE_USER`
 
-To customize security, modify `SecurityConfig.java`.
+To customize security, modify `SecurityConfig.java`. For production, consider:
+- Implementing JWT token-based authentication
+- Using database-backed user storage
+- Adding role-based authorization
+- Enabling HTTPS
 
 ### Environment Profiles
 
